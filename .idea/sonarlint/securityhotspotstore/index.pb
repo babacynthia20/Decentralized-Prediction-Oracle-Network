@@ -9,3 +9,5 @@ R
 "contracts/reward-distribution.clar,6/1/61978ba00cf6cea1f7b879af5cac1fb25543666d
 Q
 !tests/reward-distribution.test.ts,e/4/e4654ee0b2ed3b0c887cd3c833b8ea1ea8c5529b
+Q
+!contracts/dispute-resolution.clar,5/a/5acd40b2788851c069b177145b3954820caeb4e5
