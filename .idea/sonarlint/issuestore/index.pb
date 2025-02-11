@@ -11,3 +11,5 @@ Q
 !tests/reward-distribution.test.ts,e/4/e4654ee0b2ed3b0c887cd3c833b8ea1ea8c5529b
 Q
 !contracts/dispute-resolution.clar,5/a/5acd40b2788851c069b177145b3954820caeb4e5
+P
+ tests/dispute-resolution.test.ts,8/3/83dac8f4da86f7a325bc49059e9bff6e05cc07d4

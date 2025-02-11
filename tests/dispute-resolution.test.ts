@@ -1,21 +1,104 @@
+import { describe, it, expect, beforeEach } from "vitest"
 
-import { describe, expect, it } from "vitest";
+// Mock storage for disputes and votes
+const disputes = new Map<
+    number,
+    {
+      challenger: string
+      disputedValue: number
+      votesFor: number
+      votesAgainst: number
+    }
+>()
+const votes = new Map<string, boolean>()
+let lastDisputeId = 0
+let contractOwner = "owner"
 
-const accounts = simnet.getAccounts();
-const address1 = accounts.get("wallet_1")!;
+// Mock functions to simulate contract behavior
+function createDispute(disputedValue: number, challenger: string) {
+  const newDisputeId = ++lastDisputeId
+  disputes.set(newDisputeId, {
+    challenger,
+    disputedValue,
+    votesFor: 0,
+    votesAgainst: 0,
+  })
+  return newDisputeId
+}
 
-/*
-  The test below is an example. To learn more, read the testing documentation here:
-  https://docs.hiro.so/stacks/clarinet-js-sdk
-*/
+function voteOnDispute(disputeId: number, voteFor: boolean, voter: string) {
+  const dispute = disputes.get(disputeId)
+  if (!dispute) throw new Error("Invalid dispute")
+  const voteKey = `${disputeId}-${voter}`
+  if (votes.has(voteKey)) throw new Error("Already voted")
+  votes.set(voteKey, voteFor)
+  if (voteFor) {
+    dispute.votesFor++
+  } else {
+    dispute.votesAgainst++
+  }
+  disputes.set(disputeId, dispute)
+  return true
+}
 
-describe("example tests", () => {
-  it("ensures simnet is well initalised", () => {
-    expect(simnet.blockHeight).toBeDefined();
-  });
+function getDispute(disputeId: number) {
+  return disputes.get(disputeId)
+}
 
-  // it("shows an example", () => {
-  //   const { result } = simnet.callReadOnlyFn("counter", "get-counter", [], address1);
-  //   expect(result).toBeUint(0);
-  // });
-});
+function setContractOwner(newOwner: string, caller: string) {
+  if (caller !== contractOwner) throw new Error("Unauthorized")
+  contractOwner = newOwner
+  return true
+}
+
+describe("Dispute Resolution Contract", () => {
+  beforeEach(() => {
+    disputes.clear()
+    votes.clear()
+    lastDisputeId = 0
+    contractOwner = "owner"
+  })
+  
+  it("should create a new dispute", () => {
+    const disputeId = createDispute(2000, "user1")
+    expect(disputeId).toBe(1)
+    expect(getDispute(disputeId)).toMatchObject({
+      challenger: "user1",
+      disputedValue: 2000,
+      votesFor: 0,
+      votesAgainst: 0,
+    })
+  })
+  
+  it("should allow voting on a dispute", () => {
+    const disputeId = createDispute(2000, "user1")
+    expect(voteOnDispute(disputeId, true, "user2")).toBe(true)
+    expect(getDispute(disputeId)?.votesFor).toBe(1)
+  })
+  
+  it("should not allow double voting", () => {
+    const disputeId = createDispute(2000, "user1")
+    voteOnDispute(disputeId, true, "user2")
+    expect(() => voteOnDispute(disputeId, false, "user2")).toThrow("Already voted")
+  })
+  
+  it("should allow multiple users to vote", () => {
+    const disputeId = createDispute(2000, "user1")
+    voteOnDispute(disputeId, true, "user2")
+    voteOnDispute(disputeId, false, "user3")
+    voteOnDispute(disputeId, true, "user4")
+    const dispute = getDispute(disputeId)
+    expect(dispute?.votesFor).toBe(2)
+    expect(dispute?.votesAgainst).toBe(1)
+  })
+  
+  it("should allow changing contract owner by current owner", () => {
+    expect(setContractOwner("newOwner", "owner")).toBe(true)
+    expect(contractOwner).toBe("newOwner")
+  })
+  
+  it("should not allow changing contract owner by non-owner", () => {
+    expect(() => setContractOwner("newOwner", "user1")).toThrow("Unauthorized")
+  })
+})
+
